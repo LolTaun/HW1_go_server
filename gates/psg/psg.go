@@ -3,9 +3,8 @@ package psg
 import (
 	"context"
 	"net/url"
-
+	"HW1_http/pkg"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pkg/errors"
 )
 
 type Psg struct {
@@ -13,17 +12,18 @@ type Psg struct {
 }
 
 func NewPsg(dburl string, login, pass string) (psg *Psg, err error) {
-	defer func() { err = errors.Wrap(err, "postgres NewPsg()") }()
+	eW := pkg.NewEWrapper("NewPsg()")
 
 	psg = &Psg{}
 	psg.conn, err = parseConnectionString(dburl, login, pass)
 	if err != nil {
+		err = eW.WrapError(err, "parseConnectionString(dburl, login, pass)")
 		return nil, err
 	}
 
 	err = psg.conn.Ping(context.Background())
 	if err != nil {
-		err = errors.Wrap(err, "psg.conn.Ping(context.Background())")
+		err = eW.WrapError(err, "psg.conn.Ping(context.Background())")
 		return nil, err
 	}
 
@@ -31,14 +31,18 @@ func NewPsg(dburl string, login, pass string) (psg *Psg, err error) {
 }
 
 func parseConnectionString(dburl, user, password string) (db *pgxpool.Pool, err error) {
+	eW := pkg.NewEWrapper("parseConnectionString()")
+
 	var u *url.URL
 	if u, err = url.Parse(dburl); err != nil {
-		return nil, errors.Wrap(err, "ошибка парсинга url строки")
+		err = eW.WrapError(err, "url.Parse(dburl)")
+		return nil, err
 	}
 	u.User = url.UserPassword(user, password)
 	db, err = pgxpool.New(context.Background(), u.String())
 	if err != nil {
-		return nil, errors.Wrap(err, "ошибка соединения с базой данных")
+		err = eW.WrapError(err, "pgxpool.New(context.Background(), u.String())")
+		return nil, err
 	}
 	return
 }

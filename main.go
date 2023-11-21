@@ -2,36 +2,21 @@ package main
 
 import (
 	"HW1_http/controller/httpserver"
+	"HW1_http/gates/psg"
 	"fmt"
 )
 
 func main() {
-	hs, err := httpserver.NewHttpServer(":8080")
+	p, err := psg.NewPsg("postgres://127.0.0.1:5432/web-programming", "postgres", "Den")
+	
+	if err != nil{
+		fmt.Println("Error occured:", err)
+		return
+	}
+	hs := httpserver.NewHttpServer(":8080", p)
+	err = hs.Start()
 	if err != nil {
 		fmt.Println("Error occured:", err)
 		return
 	}
-	hs.Start()
 }
-
-// func main() {
-// 	//r := dto.Record{
-// 	//	Name:       "Иван",
-// 	//	LastName:   "Иванов",
-// 	//	MiddleName: "Иванович",
-// 	//	Address:    "Москва",
-// 	//	Phone:      "1234567890",
-// 	//}
-// 	//err := psg.SelectRecord(r)
-// 	//if err != nil {
-// 	//	fmt.Println(err)
-// 	//}
-// 	// if err != nil {
-// 	// 	fmt.Println("Error:", err)
-// 	// }
-// 	// //err = p.RecordSave(r)
-// 	// fmt.Println(p.RecordGet("1234567890"))
-// 	// if err != nil {
-// 	// 	fmt.Println("Error:", err)
-// 	// }
-// }
