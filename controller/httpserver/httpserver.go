@@ -5,6 +5,7 @@ import (
 	"HW1_http/models/dto"
 	"encoding/json"
 	"errors"
+	"log"
 
 	"HW1_http/pkg"
 	"io"
@@ -32,6 +33,11 @@ func NewHttpServer(addr string, p *psg.Psg) (hs *HttpServer) {
 
 func (hs *HttpServer) Start() (err error) {
 	eW := pkg.NewEWrapper("(hs *HttpServer) Start()")
+	
+	if err != nil {
+		err = eW.WrapError(err, "pkg.NewEWrapper()")
+		return
+	}
 
 	err = hs.srv.ListenAndServe()
 	if err != nil {
@@ -42,146 +48,219 @@ func (hs *HttpServer) Start() (err error) {
 }
 
 func (hs *HttpServer) recordCreateHandler(w http.ResponseWriter, req *http.Request) {
-	var err error
-	eW := pkg.NewEWrapper("(hs *HttpServer) recordCreateHandler()")
+	eW, err := pkg.NewEWrapperWithFile("(hs *HttpServer) recordCreateHandler()")
+	if err != nil {
+		log.Println("(hs *HttpServer) recordCreateHandler: NewEWrapperWithFile()", err)
+	}
+
+	resp := &dto.Response{}
+	defer responseReturn(w, eW, resp)
+
+	if req.Method != http.MethodPost {
+        http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+        return
+    }
 
 	record := dto.Record{}
 	byteReq, err := io.ReadAll(req.Body)
 	if err != nil {
+		resp.Wrap("Error reading request", nil, err.Error())
 		eW.LogError(err, "io.ReadAll(req.Body)")
-		w.WriteHeader(http.StatusPaymentRequired)
 		return
 	}
 	err = json.Unmarshal(byteReq, &record)
 	if err != nil {
+		resp.Wrap("Error JSON", nil, err.Error())
 		eW.LogError(err, "json.Unmarshal(req)")
-		w.WriteHeader(http.StatusPaymentRequired)
 		return
 	}
 
 	if record.Name == "" || record.LastName == "" || record.Address == "" || record.Phone == "" {
 		err = errors.New("required data is missing")
+		resp.Wrap("Required data is missing", nil, err.Error())
 		eW.LogError(err, "json.Unmarshal")
-		w.WriteHeader(http.StatusPaymentRequired)
 		return
 	}
 
 	record.Phone, err = pkg.PhoneNormalize(record.Phone)
 	if err != nil {
+		resp.Wrap("Error: wrong Phone", nil, err.Error())
 		eW.LogError(err, "pkg.PhoneNormalize(record.Phone)")
-		w.WriteHeader(http.StatusPaymentRequired)
 		return
 	}
 
 	err = hs.db.RecordSave(record)
 
 	if err != nil {
+		resp.Wrap("Error in saving record", nil, err.Error())
 		eW.LogError(err, "hs.db.RecordSave(record)")
-		w.WriteHeader(http.StatusPaymentRequired)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+
+	resp.Wrap("Successfully added", nil, "")
 }
 
 func (hs *HttpServer) recordsGetHandler(w http.ResponseWriter, req *http.Request) {
-	var err error
-	eW := pkg.NewEWrapper("(hs *HttpServer) recordsGetHandler()")
+	eW, err := pkg.NewEWrapperWithFile("(hs *HttpServer) recordsGetHandler()")
+	if err != nil {
+		log.Println("(hs *HttpServer) recordCreateHandler: NewEWrapperWithFile()", err)
+	}
+	resp := &dto.Response{}
+	defer responseReturn(w, eW, resp)
+
+	if req.Method != http.MethodPost {
+        http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+        return
+    }
 
 	record := dto.Record{}
 	byteReq, err := io.ReadAll(req.Body)
 	if err != nil {
+		resp.Wrap("Error reading request", nil, err.Error())
 		eW.LogError(err, "io.ReadAll(req.Body)")
-		w.WriteHeader(http.StatusPaymentRequired)
 		return
 	}
 	err = json.Unmarshal(byteReq, &record)
 	if err != nil {
+		resp.Wrap("Error JSON", nil, err.Error())
 		eW.LogError(err, "json.Marshal(req)")
-		w.WriteHeader(http.StatusPaymentRequired)
 		return
+	}
+
+	if record.Phone != ""{
+		record.Phone, err = pkg.PhoneNormalize(record.Phone)
+		if err != nil {
+			resp.Wrap("Error: wrong Phone", nil, err.Error())
+			eW.LogError(err, "pkg.PhoneNormalize(record.Phone)")
+			return
+		}
 	}
 
 	records, err := hs.db.RecordsGet(record)
 	if err != nil {
+		resp.Wrap("Error in finding records", nil, err.Error())
 		eW.LogError(err, "hs.db.RecordsGet(record)")
-		w.WriteHeader(http.StatusPaymentRequired)
 		return
 	}
 
-	err = json.NewEncoder(w).Encode(records)
+	recordsJSON, err := json.Marshal(records)
 	if err != nil {
-		eW.LogError(err, "json.NewEncoder(w).Encode(records)")
-		w.WriteHeader(http.StatusPaymentRequired)
+		resp.Wrap("Error JSON", nil, err.Error())
+		eW.LogError(err, "json.Marshal(records)")
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+
+	resp.Wrap("Success", recordsJSON, "")
 }
 
 func (hs *HttpServer) recordUpdateHandler(w http.ResponseWriter, req *http.Request) {
-	var err error
-	eW := pkg.NewEWrapper("(hs *HttpServer) recordUpdateHandler()")
+	eW, err := pkg.NewEWrapperWithFile("(hs *HttpServer) recordUpdateHandler()")
+	if err != nil {
+		log.Println("(hs *HttpServer) recordCreateHandler: NewEWrapperWithFile()", err)
+	}
+
+	resp := &dto.Response{}
+	defer responseReturn(w, eW, resp)
+
+	if req.Method != http.MethodPost {
+        http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+        return
+    }
 
 	record := dto.Record{}
 	byteReq, err := io.ReadAll(req.Body)
 	if err != nil {
+		resp.Wrap("Error reading request", nil, err.Error())
 		eW.LogError(err, "io.ReadAll(req.Body)")
-		w.WriteHeader(http.StatusPaymentRequired)
 		return
 	}
 	err = json.Unmarshal(byteReq, &record)
 	if err != nil {
+		resp.Wrap("Error JSON", nil, err.Error())
 		eW.LogError(err, "json.Unmarshal(byteReq, &record)")
-		w.WriteHeader(http.StatusPaymentRequired)
 		return
 	}
 
-
 	if (record.Name == "" && record.LastName == "" && record.MiddleName == "" && record.Address == "") || record.Phone == "" {
 		err = errors.New("required data is missing")
+		resp.Wrap("Required data is missing", nil, err.Error())
 		eW.LogError(err, "json.Unmarshal")
-		w.WriteHeader(http.StatusPaymentRequired)
+		return
+	}
+
+	record.Phone, err = pkg.PhoneNormalize(record.Phone)
+	if err != nil {
+		resp.Wrap("Error: wrong Phone", nil, err.Error())
+		eW.LogError(err, "pkg.PhoneNormalize(record.Phone)")
 		return
 	}
 
 	err = hs.db.RecordUpdate(record)
 	if err != nil {
+		resp.Wrap("Error in updating record", nil, err.Error())
 		eW.LogError(err, "hs.db.RecordUpdate(record)")
-		w.WriteHeader(http.StatusPaymentRequired)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	resp.Wrap("Success", nil, "")
 }
 
-func (hs *HttpServer) recordDeleteByPhone(w http.ResponseWriter, r *http.Request) {
-	var err error
-	eW := pkg.NewEWrapper("(hs *HttpServer) recordDeleteByPhone()")
+func (hs *HttpServer) recordDeleteByPhone(w http.ResponseWriter, req *http.Request) {
+	eW, err := pkg.NewEWrapperWithFile("(hs *HttpServer) recordDeleteByPhone()")
+	if err != nil {
+		log.Println("(hs *HttpServer) recordCreateHandler: NewEWrapperWithFile()", err)
+	}
+
+	resp := &dto.Response{}
+	defer responseReturn(w, eW, resp)
+
+	if req.Method != http.MethodPost {
+        http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+        return
+    }
 
 	record := dto.Record{}
-	byteReq, err := io.ReadAll(r.Body)
+	byteReq, err := io.ReadAll(req.Body)
 	if err != nil {
+		resp.Wrap("Error reading request", nil, err.Error())
 		eW.LogError(err, "io.ReadAll(r.Body)")
-		w.WriteHeader(http.StatusPaymentRequired)
 		return
 	}
 	err = json.Unmarshal(byteReq, &record)
 	if err != nil {
+		resp.Wrap("Error JSON", nil, err.Error())
 		eW.LogError(err, "json.Unmarshal(byteReq, &record)")
-		w.WriteHeader(http.StatusPaymentRequired)
 		return
 	}
 
 	if record.Phone == "" {
 		err = errors.New("phone data is missing")
+		resp.Wrap("Phone data is missing", nil, err.Error())
 		eW.LogError(err, "json.Unmarshal")
-		w.WriteHeader(http.StatusPaymentRequired)
+		return
+	}
+
+	record.Phone, err = pkg.PhoneNormalize(record.Phone)
+	if err != nil {
+		resp.Wrap("Error: wrong Phone", nil, err.Error())
+		eW.LogError(err, "pkg.PhoneNormalize(record.Phone)")
 		return
 	}
 
 	err = hs.db.RecordDeleteByPhone(record.Phone)
 	if err != nil {
+		resp.Wrap("Error in deleting record", nil, err.Error())
 		eW.LogError(err, "hs.db.RecordDeleteByPhone(record.Phone)")
+		return
+	}
+	resp.Wrap("Success", nil, "")
+}
+
+func responseReturn(w http.ResponseWriter, eW *pkg.EWrapper, resp *dto.Response){
+	err_encode := json.NewEncoder(w).Encode(resp)
+	if err_encode != nil {
+		eW.LogError(err_encode, "json.NewEncoder(w).Encode(resp)")
 		w.WriteHeader(http.StatusPaymentRequired)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	eW.Close()
 }

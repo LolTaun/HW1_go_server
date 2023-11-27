@@ -2,92 +2,117 @@ package psg
 
 import (
 	"HW1_http/models/dto"
+	"HW1_http/pkg"
 	"context"
 	"fmt"
 	"html/template"
 	"reflect"
 	"strconv"
 	"strings"
-
+	"github.com/jackc/pgx/v5"
 	"github.com/pkg/errors"
 )
 
 func (p *Psg) RecordSave(rd dto.Record) error {
-	sqlCommand := `INSERT INTO address_book (name, last_name, middle_name, address, phone) VALUES ($1, $2, $3, $4, $5)`
-	_, err := p.conn.Exec(context.Background(), sqlCommand, rd.Name, rd.LastName, rd.MiddleName, rd.Address, rd.Phone)
+	eW := pkg.NewEWrapper("(p *Psg) RecordSave()")
+
+	err := p.PhoneExists(rd.Phone)
 	if err != nil {
-		return errors.Wrap(err, "psg: (p *Psg) RecordSave()")
+		return eW.WrapError(err, "p.PhoneExists(rd.Phone)")
+	}
+
+	sqlCommand := `INSERT INTO address_book (name, last_name, middle_name, address, phone) VALUES ($1, $2, $3, $4, $5)`
+	_, err = p.conn.Exec(context.Background(), sqlCommand, rd.Name, rd.LastName, rd.MiddleName, rd.Address, rd.Phone)
+	if err != nil {
+		return eW.WrapError(err, "p.db.Exec()")
 	}
 	return nil
 }
 
 func (p *Psg) RecordsGet(record dto.Record) (result []dto.Record, err error) {
+	eW := pkg.NewEWrapper("(p *Psg) RecordsGet()")
+
 	sqlCommand, values, err := p.SelectRecord(record)
 	if err != nil {
-		return result, errors.Wrap(err, "psg: (p *Psg) RecordsGet(): SelectRecord()")
+		return result, eW.WrapError(err, "p.SelectRecord(record)")
 	}
 
 	rows, err := p.conn.Query(context.Background(), sqlCommand, values...)
 	if err != nil {
-		return result, errors.Wrap(err, "psg: (p *Psg) RecordsGet(): p.db.Query()")
+		return result, eW.WrapError(err, "p.db.Query()")
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var r dto.Record
 		if err := rows.Scan(&r.ID, &r.Name, &r.LastName, &r.MiddleName, &r.Address, &r.Phone); err != nil {
-			return result, errors.Wrap(err, "psg: (p *Psg) RecordsGet(): rows.Scan()")
+			return result, eW.WrapError(err, "rows.Scan(&r.ID, &r.Name, &r.LastName, &r.MiddleName, &r.Address, &r.Phone)")
 		}
 		result = append(result, r)
 	}
 
 	if err := rows.Err(); err != nil {
-		return result, errors.Wrap(err, "psg: (p *Psg) RecordsGet(): rows.Err()")
+		return result, eW.WrapError(err, "rows.Err()")
 	}
 
 	return result, nil
 }
 
-func (p *Psg) RecordUpdate(record dto.Record) error {
-    fields := []string{}
-    values := []interface{}{}
-    index := 1
+func (p *Psg) RecordUpdate(record dto.Record) (err error) {
+	eW := pkg.NewEWrapper("(p *Psg) RecordUpdate()")
 
-    if record.Name != "" {
-        fields = append(fields, fmt.Sprintf("name=$%d", index))
-        values = append(values, record.Name)
-        index++
-    }
-    if record.LastName != "" {
-        fields = append(fields, fmt.Sprintf("last_name=$%d", index))
-        values = append(values, record.LastName)
-        index++
-    }
-    if record.MiddleName != "" {
-        fields = append(fields, fmt.Sprintf("middle_name=$%d", index))
-        values = append(values, record.MiddleName)
-        index++
-    }
-    if record.Address != "" {
-        fields = append(fields, fmt.Sprintf("address=$%d", index))
-        values = append(values, record.Address)
-        index++
-    }
+	err = p.PhoneExists(record.Phone)
+	if err == nil {
+		return eW.WrapError(errors.New(""), "Phone does not exist")
+	}
+	err = nil
 
-    values = append(values, record.Phone)
-    sqlCommand := fmt.Sprintf(`UPDATE address_book SET %s WHERE phone=$%d`, strings.Join(fields, ", "), index)
+	fields := []string{}
+	values := []interface{}{}
+	index := 1
 
-    _, err := p.conn.Exec(context.Background(), sqlCommand, values...)
-    if err != nil {
-        return errors.Wrap(err, "psg: (p *Psg) RecordUpdate()")
-    }
-    return nil
+	if record.Name != "" {
+		fields = append(fields, fmt.Sprintf("name=$%d", index))
+		values = append(values, record.Name)
+		index++
+	}
+	if record.LastName != "" {
+		fields = append(fields, fmt.Sprintf("last_name=$%d", index))
+		values = append(values, record.LastName)
+		index++
+	}
+	if record.MiddleName != "" {
+		fields = append(fields, fmt.Sprintf("middle_name=$%d", index))
+		values = append(values, record.MiddleName)
+		index++
+	}
+	if record.Address != "" {
+		fields = append(fields, fmt.Sprintf("address=$%d", index))
+		values = append(values, record.Address)
+		index++
+	}
+
+	values = append(values, record.Phone)
+	sqlCommand := fmt.Sprintf(`UPDATE address_book SET %s WHERE phone=$%d`, strings.Join(fields, ", "), index)
+
+	_, err = p.conn.Exec(context.Background(), sqlCommand, values...)
+	if err != nil {
+		return eW.WrapError(err, "p.db.Exec()")
+	}
+	return nil
 }
 
-func (p *Psg) RecordDeleteByPhone(phone string) error {
+func (p *Psg) RecordDeleteByPhone(phone string) (err error) {
+	eW := pkg.NewEWrapper("(p *Psg) RecordDeleteByPhone()")
+
+	err = p.PhoneExists(phone)
+	if err == nil {
+		return eW.WrapError(errors.New(""), "Phone does not exist")
+	}
+
 	sqlCommand := `DELETE FROM address_book WHERE phone=$1`
-	_, err := p.conn.Exec(context.Background(), sqlCommand, phone)
+	_, err = p.conn.Exec(context.Background(), sqlCommand, phone)
 	if err != nil {
-		return errors.Wrap(err, "psg: (p *Psg) RecordDeleteByPhone()")
+		return eW.WrapError(err, "p.db.Exec()")
 	}
 	return nil
 }
@@ -188,4 +213,22 @@ func structToFieldsValues(s any, tag string) (sqlFields []string, values []any, 
 	}
 
 	return
+}
+
+func (p *Psg) PhoneExists(phone string) error {
+	eW := pkg.NewEWrapper("(p *Psg) PhoneExists()")
+    sqlCommand := `SELECT phone FROM address_book WHERE phone = $1`
+    row := p.conn.QueryRow(context.Background(), sqlCommand, phone)
+    var existingPhone string
+    err := row.Scan(&existingPhone)
+	if existingPhone == phone {
+		return errors.New("phone number already in use")
+	}
+    if err != nil {
+        if err == pgx.ErrNoRows {
+            return nil
+        }
+		return eW.WrapError(err, "row.Scan(&existingPhone)")
+    }
+	return eW.WrapError(err, "phone number already in use")
 }
