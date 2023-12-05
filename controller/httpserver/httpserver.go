@@ -33,7 +33,7 @@ func NewHttpServer(addr string, p *psg.Psg) (hs *HttpServer) {
 
 func (hs *HttpServer) Start() (err error) {
 	eW := pkg.NewEWrapper("(hs *HttpServer) Start()")
-	
+
 	if err != nil {
 		err = eW.WrapError(err, "pkg.NewEWrapper()")
 		return
@@ -57,9 +57,9 @@ func (hs *HttpServer) recordCreateHandler(w http.ResponseWriter, req *http.Reque
 	defer responseReturn(w, eW, resp)
 
 	if req.Method != http.MethodPost {
-        http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-        return
-    }
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
 
 	record := dto.Record{}
 	byteReq, err := io.ReadAll(req.Body)
@@ -109,9 +109,9 @@ func (hs *HttpServer) recordsGetHandler(w http.ResponseWriter, req *http.Request
 	defer responseReturn(w, eW, resp)
 
 	if req.Method != http.MethodPost {
-        http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-        return
-    }
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
 
 	record := dto.Record{}
 	byteReq, err := io.ReadAll(req.Body)
@@ -127,7 +127,7 @@ func (hs *HttpServer) recordsGetHandler(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	if record.Phone != ""{
+	if record.Phone != "" {
 		record.Phone, err = pkg.PhoneNormalize(record.Phone)
 		if err != nil {
 			resp.Wrap("Error: wrong Phone", nil, err.Error())
@@ -163,9 +163,9 @@ func (hs *HttpServer) recordUpdateHandler(w http.ResponseWriter, req *http.Reque
 	defer responseReturn(w, eW, resp)
 
 	if req.Method != http.MethodPost {
-        http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-        return
-    }
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
 
 	record := dto.Record{}
 	byteReq, err := io.ReadAll(req.Body)
@@ -214,9 +214,9 @@ func (hs *HttpServer) recordDeleteByPhone(w http.ResponseWriter, req *http.Reque
 	defer responseReturn(w, eW, resp)
 
 	if req.Method != http.MethodPost {
-        http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-        return
-    }
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
 
 	record := dto.Record{}
 	byteReq, err := io.ReadAll(req.Body)
@@ -255,10 +255,10 @@ func (hs *HttpServer) recordDeleteByPhone(w http.ResponseWriter, req *http.Reque
 	resp.Wrap("Success", nil, "")
 }
 
-func responseReturn(w http.ResponseWriter, eW *pkg.EWrapper, resp *dto.Response){
-	err_encode := json.NewEncoder(w).Encode(resp)
-	if err_encode != nil {
-		eW.LogError(err_encode, "json.NewEncoder(w).Encode(resp)")
+func responseReturn(w http.ResponseWriter, eW *pkg.EWrapper, resp *dto.Response) {
+	errEncode := json.NewEncoder(w).Encode(resp)
+	if errEncode != nil {
+		eW.LogError(errEncode, "json.NewEncoder(w).Encode(resp)")
 		w.WriteHeader(http.StatusPaymentRequired)
 		return
 	}

@@ -5,12 +5,12 @@ import (
 	"HW1_http/pkg"
 	"context"
 	"fmt"
+	"github.com/jackc/pgx/v5"
+	"github.com/pkg/errors"
 	"html/template"
 	"reflect"
 	"strconv"
 	"strings"
-	"github.com/jackc/pgx/v5"
-	"github.com/pkg/errors"
 )
 
 func (p *Psg) RecordSave(rd dto.Record) error {
@@ -217,18 +217,18 @@ func structToFieldsValues(s any, tag string) (sqlFields []string, values []any, 
 
 func (p *Psg) PhoneExists(phone string) error {
 	eW := pkg.NewEWrapper("(p *Psg) PhoneExists()")
-    sqlCommand := `SELECT phone FROM address_book WHERE phone = $1`
-    row := p.conn.QueryRow(context.Background(), sqlCommand, phone)
-    var existingPhone string
-    err := row.Scan(&existingPhone)
+	sqlCommand := `SELECT phone FROM address_book WHERE phone = $1`
+	row := p.conn.QueryRow(context.Background(), sqlCommand, phone)
+	var existingPhone string
+	err := row.Scan(&existingPhone)
 	if existingPhone == phone {
 		return errors.New("phone number already in use")
 	}
-    if err != nil {
-        if err == pgx.ErrNoRows {
-            return nil
-        }
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil
+		}
 		return eW.WrapError(err, "row.Scan(&existingPhone)")
-    }
+	}
 	return eW.WrapError(err, "phone number already in use")
 }

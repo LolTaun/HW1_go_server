@@ -7,9 +7,9 @@ import (
 )
 
 func main() {
-	p, err := psg.NewPsg("postgres://127.0.0.1:5432/web-programming", "postgres", "Den")
-	
-	if err != nil{
+	p, err := psg.NewPsg("postgres://127.0.0.1:5432/web-programming", "postgres", " ")
+
+	if err != nil {
 		fmt.Println("Error occured:", err)
 		return
 	}

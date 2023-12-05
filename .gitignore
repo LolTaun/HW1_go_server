@@ -3,3 +3,5 @@ test_req*
 client/*
 query*
 logs*
+.idea
+.vscode

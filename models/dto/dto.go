@@ -14,20 +14,20 @@ type Record struct {
 }
 
 type Cond struct {
-	Lop    	string
-	PgxInd 	string
-	Field  	string
-	Value  	any
+	Lop    string
+	PgxInd string
+	Field  string
+	Value  any
 }
 
 type Response struct {
-	Result string 			`json:"result"`
-    Data   json.RawMessage	`json:"data"`
-    Error string 			`json:"error"`
+	Result string          `json:"result"`
+	Data   json.RawMessage `json:"data"`
+	Error  string          `json:"error"`
 }
 
 func (r *Response) Wrap(result string, data json.RawMessage, error string) {
-    r.Result = result
-    r.Error = error
-    r.Data = data
+	r.Result = result
+	r.Error = error
+	r.Data = data
 }

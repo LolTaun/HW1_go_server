@@ -1,10 +1,10 @@
 package psg
 
 import (
-	"context"
-	"net/url"
 	"HW1_http/pkg"
+	"context"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"net/url"
 )
 
 type Psg struct {
